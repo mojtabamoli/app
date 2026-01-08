@@ -1,0 +1,43 @@
+name: Build Debug APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Show repo files (diagnostic)
+        run: |
+          pwd
+          ls -la
+          find . -maxdepth 2 -type f -name "gradlew" -o -name "settings.gradle*" -o -name "build.gradle*" | sed 's|^\./||'
+
+      - name: Make gradlew runnable (CRLF + exec)
+        run: |
+          # اگر gradlew در ریشه است:
+          if [ -f "./gradlew" ]; then
+            sed -i 's/\r$//' ./gradlew || true
+            chmod +x ./gradlew
+          fi
+
+      - name: Build Debug APK
+        run: |
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
