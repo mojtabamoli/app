@@ -1,63 +1,6 @@
-name: Build APK from ZIP
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-        - name: Find gradlew
+      - name: Find gradlew
         run: |
           echo "Searching for gradlew..."
           find . -type f -name "gradlew" -print
           echo "Searching for settings.gradle..."
           find . -type f -name "settings.gradle*" -print
-
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Unzip project
-        run: |
-          ls -la
-          ZIP="Vocab2000FA_project.zip"
-          if [ ! -f "$ZIP" ]; then
-            echo "ERROR: $ZIP not found in repo root."
-            exit 1
-          fi
-          mkdir -p _project
-          unzip -o "$ZIP" -d _project
-          PROJECT_DIR=$(find _project -mindepth 1 -maxdepth 1 -type d | head -n 1)
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-          ls -la "$PROJECT_DIR"
-
-      - name: Download Gradle (bootstrap, since wrapper missing)
-        run: |
-          GRADLE_VERSION=8.13
-          curl -L -o gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
-          unzip -q gradle.zip -d $HOME/gradle
-          echo "$HOME/gradle/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
-          gradle -v
-
-      - name: Generate wrapper & build Debug APK
-        run: |
-          cd "$PROJECT_DIR"
-          gradle wrapper --gradle-version 8.13
-          sed -i 's/\r$//' gradlew || true
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
