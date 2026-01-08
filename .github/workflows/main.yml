@@ -5,6 +5,13 @@ on:
 
 jobs:
   build:
+        - name: Find gradlew
+        run: |
+          echo "Searching for gradlew..."
+          find . -type f -name "gradlew" -print
+          echo "Searching for settings.gradle..."
+          find . -type f -name "settings.gradle*" -print
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
