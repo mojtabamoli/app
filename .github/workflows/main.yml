@@ -1,6 +1,53 @@
-      - name: Find gradlew
+name: Build Debug APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Repo diagnostics
         run: |
-          echo "Searching for gradlew..."
-          find . -type f -name "gradlew" -print
-          echo "Searching for settings.gradle..."
-          find . -type f -name "settings.gradle*" -print
+          pwd
+          ls -la
+          echo "---- find gradle files ----"
+          find . -maxdepth 3 -type f -name "settings.gradle*" -o -name "build.gradle*" -o -name "gradlew*" | sed 's|^\./||'
+
+      - name: Install Gradle (temporary)
+        run: |
+          GRADLE_VERSION=8.7
+          curl -L -o gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          unzip -q gradle.zip -d $HOME/gradle
+          echo "$HOME/gradle/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
+          gradle -v
+
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.7
+          sed -i 's/\r$//' gradlew || true
+          chmod +x gradlew
+          ls -la
+          ls -la gradle/wrapper || true
+
+      - name: Build Debug APK
+        run: |
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
